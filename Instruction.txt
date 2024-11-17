@@ -1,0 +1,131 @@
+1. Create an EKS Cluster Using Terraform
+
+Initialize Terraform:
+-I ran the following command to initialize Terraform and download the required providers:
+
+terraform init
+
+-This command sets up Terraform for the project and ensures the necessary AWS plugins are downloaded.
+Plan the Cluster Configuration:
+
+
+Plan the Cluster Configuration:
+-I executed:
+
+terraform plan
+
+This command generated a plan showing what resources Terraform would create, such as a VPC, subnets, and an EKS cluster.
+Apply the Terraform Configuration:
+
+
+Apply the Terraform Configuration:
+-I ran:
+
+terraform apply
+
+This created an EKS cluster with a single worker node, a custom VPC, and two subnets. The output included details about the cluster and a kubeconfig file to interact with it.
+
+
+Verify the Cluster:
+
+-I checked the cluster with:
+
+kubectl get nodes
+
+This confirmed the cluster was running, and the worker node was ready.
+
+
+2. Deploy the Nginx Application
+Create a ConfigMap for Nginx Configuration:
+
+I created a ConfigMap to expose metrics at the /metrics endpoint using the stub_status module.
+-I applied it with:
+
+kubectl apply -f nginx-configmap.yaml
+
+-This stored the Nginx configuration in the cluster.
+
+
+Expose the Nginx Service:
+-I created a Service to expose Nginx internally and applied it:
+
+kubectl apply -f nginx-service.yaml
+
+-This created a ClusterIP service for internal communication.
+
+
+Verify the Nginx Setup:
+
+-I verified the pod and service status with:
+
+kubectl get pods
+kubectl get svc
+
+-Then, I tested the /metrics endpoint using:
+
+curl http://<NGINX_SERVICE_CLUSTER_IP>:80/metrics
+
+-This returned Nginx metrics such as active connections and total requests.
+
+
+3. Deploy Prometheus to Monitor Nginx
+Add the Prometheus Helm Repository:
+-I added the Prometheus Helm chart repository with:
+
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo update
+
+-This ensured I had the latest Prometheus Helm chart.
+
+
+Deploy Prometheus with Custom Configuration:
+
+-I created a prometheus-values.yaml file to configure Prometheus to:
+ -Expose itself via a LoadBalancer.
+ -Scrape metrics from the Nginx /metrics endpoint.
+
+-I installed Prometheus with:
+
+helm install prometheus prometheus-community/kube-prometheus-stack --namespace monitoring --create-namespace -f prometheus-values.yaml
+
+-This deployed Prometheus and made it accessible via an external IP.
+
+
+Verify Prometheus Deployment:
+
+-I checked the Prometheus service and retrieved its external IP:
+
+kubectl get svc -n monitoring
+
+-Then, I opened Prometheus in my browser using the external IP.
+
+
+Verify Nginx Metrics in Prometheus:
+
+-I navigated to Status > Targets in the Prometheus UI to confirm the Nginx target was listed and UP.
+-I queried Nginx metrics, such as:
+
+nginx_connections_active
+nginx_requests_total
+
+
+4. Optional: Deploy Grafana for Visualization
+Install Grafana:
+-I deployed Grafana using Helm:
+
+helm install grafana grafana/grafana --namespace monitoring
+
+
+Retrieve Grafana Admin Password:
+-I fetched the admin password for Grafana with:
+
+kubectl get secret -n monitoring grafana -o jsonpath="{.data.admin-password}" | base64 --decode ; echo
+
+
+Import an Nginx Dashboard:
+-I logged into Grafana and imported a prebuilt Nginx dashboard using Dashboard ID: 10923.
+
+
+Verify Metrics in Grafana:
+-I used the imported dashboard to view Nginx metrics like active connections, requests, and errors.
+
