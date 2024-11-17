@@ -1,0 +1,8 @@
+prometheus:
+  prometheusSpec:
+    service:
+      type: LoadBalancer
+    scrapeConfigs:
+      - job_name: 'nginx'
+        static_configs:
+          - targets: ['nginx-service.default.svc.cluster.local:80']
